@@ -11,7 +11,100 @@ import matplotlib
 pd.set_option('display.max_rows',8)
 pd.set_option('display.width',999)
 
+scandata_field_list = ['/entry1/measurement', '/entry1/plotted']
+scan_command_field_list = ['/entry1/scan_command']
+
 class pdnx(pd.DataFrame): 
+    '''
+    nexusformat wrapper: tries to create dataframe from default data
+    whole nexus file is under .nx attribute
+    e.g. 
+    n=pdnx(p % 633777)  open file for scan 633777 (p is filename/format specifier)
+    n                   display pandas dataframe
+    n.plot()            plot pandas dataframe
+    n.plot(x='idgap',y='ic1monitor', title=n.scan)    select x and y collumns and make title
+    n.nx                nexus tree
+    print n.nx.tree     print nexus tree
+    n.find('chi')	find 'chi' key(s) in tree and display value(s)
+    n.findkeys('chi')	return list of key value lists for key 'chi'
+    n.nx.plot()         default nexus plot
+    for i in range(633777, 633779):print pdnx(p % i).scan     print scan string for range of scans
+
+    n['newkey'] = n.nx.entry1.before_scan.myval 	as long as 'newkey' is new then this pads out a new scan column with myval
+
+    '''
+    def __init__(self,  filestr, scandata_field_list = scandata_field_list, scan_command_field_list = scan_command_field_list):
+        try:
+            _nx = nx.nxload(filestr,'r')
+
+        except:
+            print "=== Error loading file %s" % filestr
+            return
+        
+	_load_dataframe_success = False
+	for scandata_field in scandata_field_list:
+	    try:
+                nx_scan_dict = dict(_nx[scandata_field])
+                for key in nx_scan_dict.keys():
+                    nx_scan_dict[key] = nx_scan_dict[key].nxdata
+                pd.DataFrame.__init__(self, nx_scan_dict)
+		_load_dataframe_success = True
+		break
+            except:
+		pass
+
+	if not _load_dataframe_success:
+	    #print '=== Failed to create DataFrame from data - create empty DataFrame'
+            pd.DataFrame.__init__(self)
+
+        setattr(self,'nx',_nx)
+	
+	for scan_command in scan_command_field_list:	
+	    try:
+	        setattr(self, 'scan', filestr+'\n'+_nx[scan_command].nxdata)
+		break
+	    except:
+	        pass
+
+    def _list_to_dot_sep_string(self, lst):
+    	outstr = ''
+    	for item in lst:
+        	outstr += '.' + str(item)
+    	return outstr
+
+    def _find_key(self, tree, key, previous_keys=[]):
+        global _keylist
+        try:
+            for keyval in tree.keys():
+        	if keyval == key or key == '':
+                     _keylist += [previous_keys + [keyval]]
+          	self._find_key(tree[keyval], key, previous_keys = previous_keys + [keyval])
+    	except:
+        	pass
+
+    def findkeys(self, keystring):
+    	'Return list of key sequences (lists) that end with keystring'    
+    	global _keylist
+    	_keylist=[]
+    	self._find_key(self.nx, keystring)
+    	return _keylist
+
+    def find(self, keystring=''):
+	'Return nexus fields and values for keystring'
+	for key_sequence in self.findkeys(keystring):
+	    obj = self.nx
+	    for key in key_sequence:
+		obj = obj[key]
+	    print '.nx' + self._list_to_dot_sep_string(key_sequence) + ' : \t', obj
+
+
+
+
+
+
+
+
+class pdnx_old(pd.DataFrame): 
     '''
     nexusformat wrapper: tries to create dataframe from default data
     whole nexus file is under .nx attribute
@@ -50,24 +143,38 @@ class pdnx(pd.DataFrame):
 	except:
 	    pass
 
-def list_to_dot_sep_string(lst):
-    outstr = ''
-    for item in lst:
-        outstr += '.' + str(item)
-    return outstr
+    def _list_to_dot_sep_string(self, lst):
+    	outstr = ''
+    	for item in lst:
+        	outstr += '.' + str(item)
+    	return outstr
 
-def find_key(tree, key, previous_keys=[]):
-    '''
-    find and display dictionary tree entries ending in specified key
-    e.g. find_key(n.nx, 'ic1monitor')
-    '''
-    try:
-        for keyval in tree.keys():
-            if keyval == key or key == '':
-                print list_to_dot_sep_string(previous_keys + [keyval])
-            find_key(tree[keyval], key, previous_keys = previous_keys + [keyval])
-    except:
-        pass
+    def _find_key(self, tree, key, previous_keys=[]):
+        global _keylist
+        try:
+            for keyval in tree.keys():
+        	if keyval == key or key == '':
+                     _keylist += [previous_keys + [keyval]]
+          	self._find_key(tree[keyval], key, previous_keys = previous_keys + [keyval])
+    	except:
+        	pass
+
+    def findkeys(self, keystring):
+    	'Return list of key sequences (lists) that end with keystring'    
+    	global _keylist
+    	_keylist=[]
+    	self._find_key(self.nx, keystring)
+    	return _keylist
+
+    def find(self, keystring=''):
+	'Return nexus fields and values for keystring'
+	for key_sequence in self.findkeys(keystring):
+	    obj = self.nx
+	    for key in key_sequence:
+		obj = obj[key]
+	    print '.nx' + self._list_to_dot_sep_string(key_sequence) + ' : \t', obj
+
+
 
 
 
