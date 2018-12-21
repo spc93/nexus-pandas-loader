@@ -23,6 +23,7 @@ class pdnx(pd.DataFrame):
     print n.nx.tree     print nexus tree
     n.find('chi')	find 'chi' key(s) in tree and display value(s) (n.find() for all)
     n.findkeys('chi')	return list of key value lists for key 'chi'
+    n.pruned_tree(n)    return nexus tree up to n levels deep
     n.nx.plot()         default nexus plot
     for i in range(633777, 633779):print pdnx(p % i).scan     print scan string for range of scans
 
