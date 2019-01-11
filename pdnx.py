@@ -85,7 +85,7 @@ class pdnx(pd.DataFrame):
         try:
             for keyval in tree.keys():
                 if keyval == key or key == '':
-                    keylist += [previous_keys + [keyval]]
+                    _keylist += [previous_keys + [keyval]]
                 self._find_key(tree[keyval], key, previous_keys = previous_keys + [keyval])
         except:
             pass
@@ -103,7 +103,7 @@ class pdnx(pd.DataFrame):
             obj = self.nx
             for key in key_sequence:
                 obj = obj[key]
-            print('.nx' + self._list_to_dot_sep_string(key_sequence) + ' : \t', obj)
+            print '.nx' + self._list_to_dot_sep_string(key_sequence) + ' : \t', obj #change syntax for Python3
 
     def pruned_tree(self, depth):
         'Print pruned tree'
