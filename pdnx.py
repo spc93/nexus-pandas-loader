@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib
 
 pd.set_option('display.max_rows',8)
+pd.set_option('display.max_columns', 500)
 pd.set_option('display.width',999)
 
 scandata_field_list = ['/entry1/measurement', '/entry1/plotted']
