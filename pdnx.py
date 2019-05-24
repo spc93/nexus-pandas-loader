@@ -6,8 +6,10 @@ pd.set_option('display.max_rows',8)
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width',999)
 
-scandata_field_list = ['/entry1/measurement', '/entry1/plotted']
-scan_command_field_list = ['/entry1/scan_command']
+#scandata_field_list = ['/entry1/measurement', '/entry1/plotted']
+#scan_command_field_list = ['/entry1/scan_command']
+_entry = '/entry1'
+_measurement = '/measurement'
 
 
 class pdnx(pd.DataFrame): 
@@ -32,7 +34,11 @@ class pdnx(pd.DataFrame):
 
     '''
 
-    def __init__(self,  filestr, scandata_field_list = scandata_field_list, scan_command_field_list = scan_command_field_list):
+    def __init__(self,  filestr, entry = _entry, measurement = _measurement):
+        '''
+        entry = select nexus entry for measurement data and set default to this entry
+        measurement = nexus field containing datafor pandas dataframe
+        '''
         try:
             _nx = nx.nxload(filestr,'r')
 
@@ -41,19 +47,24 @@ class pdnx(pd.DataFrame):
             return
         
         _load_dataframe_success = False
-        for scandata_field in scandata_field_list:
-            try:
-                nx_scan_dict = dict(_nx[scandata_field])
-                for key in nx_scan_dict.keys():
-                    try:
-                        nx_scan_dict[key] = nx_scan_dict[key].nxdata.flatten()
-                    except:
-                        pass
-                pd.DataFrame.__init__(self, nx_scan_dict)
-                _load_dataframe_success = True
-                break
-            except:
-                pass
+
+        try:
+            nx_scan_dict = dict(_nx[entry+measurement])
+            for key in nx_scan_dict.keys():
+                try:
+                    nx_scan_dict[key] = nx_scan_dict[key].nxdata.flatten()
+                except:
+                    pass
+            pd.DataFrame.__init__(self, nx_scan_dict)
+            _load_dataframe_success = True
+        except:
+            pass
+
+        try:
+            _nx['default'] = entry #set default entry to specified entry (for files with multiple enties)
+	except:
+            pass
+
 
         if not _load_dataframe_success:
             #print('=== Failed to create DataFrame from data - create empty DataFrame')
@@ -61,12 +72,11 @@ class pdnx(pd.DataFrame):
 
         setattr(self,'nx',_nx)
         
-        for scan_command in scan_command_field_list:	
-            try:
-                setattr(self, 'scan', filestr+'\n'+_nx[scan_command].nxdata)
-                break
-            except:
-                pass
+
+        try:
+            setattr(self, 'scan', filestr+'\n'+_nx[entry]['title'].nxdata)
+        except:
+            pass
 
 
     def plt(self, *args, **kwargs):
