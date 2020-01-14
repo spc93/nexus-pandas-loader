@@ -62,7 +62,7 @@ class pdnx(pd.DataFrame):
 
         try:
             _nx['default'] = entry #set default entry to specified entry (for files with multiple enties)
-	except:
+        except:
             pass
 
 
@@ -114,7 +114,7 @@ class pdnx(pd.DataFrame):
             obj = self.nx
             for key in key_sequence:
                 obj = obj[key]
-            print '.nx' + self._list_to_dot_sep_string(key_sequence) + ' : \t', obj #change syntax for Python3
+            print('.nx' + self._list_to_dot_sep_string(key_sequence) + ' : \t', obj)
 
     def pruned_tree(self, depth):
         'Print pruned tree'
