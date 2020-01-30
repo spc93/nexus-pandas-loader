@@ -1,6 +1,7 @@
 import nexusformat.nexus as nx
 import pandas as pd
 import matplotlib
+import numpy as np
 
 pd.set_option('display.max_rows',8)
 pd.set_option('display.max_columns', 500)
@@ -23,12 +24,12 @@ class pdnx(pd.DataFrame):
     n.plot('idgap','ic1monitor')	pandas plot with selected x and y collumns
     n.plt('idgap','ic1monitor')		same but with pdnx defaults (title etc)	
     n.nx                nexus tree
-    print n.nx.tree     print nexus tree
+    print(n.nx.tree)     print nexus tree
     n.find('chi')	find 'chi' key(s) in tree and display value(s) (n.find() for all)
     n.findkeys('chi')	return list of key value lists for key 'chi'
     n.pruned_tree(n)    return nexus tree up to n levels deep
     n.nx.plot()         default nexus plot
-    for i in range(633777, 633779):print pdnx(p % i).scan     print scan string for range of scans
+    for i in range(633777, 633779):print(pdnx(p % i).scan)     print scan string for range of scans
 
     n['newkey'] = n.nx.entry1.before_scan.myval 	as long as 'newkey' is new then this pads out a new scan column with myval
 
@@ -141,9 +142,9 @@ def vec2mat(vecx, vecy, vecz, n_inner=None):
     vx = np.array(vecx[:]); vy = np.array(vecy[:]); vz = np.array(vecz[:]) #get inputs in standard form
     if n_inner == None:   #calculate number in inner loop by looking for jumps
         jumps = np.abs(np.diff(vx) * np.diff(vy))
-        n_inne = matplotlib.mlab.find(jumps>np.mean(jumps))[0] + 1
+        n_inner = matplotlib.mlab.find(jumps>np.mean(jumps))[0] + 1
 
-    n_outer = len(vx)/n_inner
+    n_outer = len(vx) // n_inner
     #reshape matrices
     matx = vx[0:n_inner * n_outer].reshape(n_outer,n_inner)
     maty = vy[0:n_inner * n_outer].reshape(n_outer,n_inner)
