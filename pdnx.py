@@ -36,6 +36,9 @@ class pdnx(pd.DataFrame):
     for i in range(633777, 633779):print(pdnx(p % i).scan)     print scan string for range of scans
 
     n['newkey'] = n.nx.entry1.before_scan.myval 	as long as 'newkey' is new then this pads out a new scan column with myval
+    n.to_excel(filename)    save excel spreadsheet (standard Pandas method - see other .to_ methods)
+    n.to_srs(filename)        save as SRS .dat file (requires NXclassic_scan)
+    n.to_srs_plus(filename)    save as SRS .dat file with key-value metadata assignments (requires NXclassic_scan)
 
     '''
 
@@ -105,7 +108,8 @@ class pdnx(pd.DataFrame):
         except:
             pass
 
-
+        self._use_classicscan = _use_classicscan
+        self._entrydata = entrydata
 
 
     def __init_old__(self,  filestr, entry = _entry, measurement = _measurement):
@@ -150,6 +154,33 @@ class pdnx(pd.DataFrame):
             setattr(self, 'scan', filestr+'\n'+_nx[entry]['title'].nxdata)
         except:
             pass
+
+
+    def to_srs(self, outfile, extra_metadata = []):
+        #save data in SRS .dat format (requires NXclassic_scan)
+        if not self._use_classicscan:
+            raise ValueError('=== The to_srs method requires a NeXus file with NXclassic_scan definition. \nYou might still be able to use .to_csv')
+        self.to_csv(outfile, sep = '\t', index = False)
+        with open(outfile, 'r+') as f:
+            content = f.read()
+            f.seek(0, 0)
+            for headerline in list(self.nx.entry1.scan.measurement.scan_header) + extra_metadata:
+                f.write(headerline + '\n')
+            f.write(' &END\n')
+            f.write(content)
+
+    def to_srs_plus(self, outfile):
+        #save data in SRS .dat format with extra metadata key-value pairs (requires NXclassic_scan)
+        if not self._use_classicscan:
+            raise ValueError('=== The to_srs_plus method requires a NeXus file with NXclassic_scan definition. \nYou might still be able to use .to_csv')
+        positioner_tree_list  =  self.nx.entry1.scan.positioners.tree.split('\n')
+        assignments_list  =  [assig.lstrip() for assig in positioner_tree_list if '=' in assig and not '@'in assig]
+        try:
+            scan_command_assignment = ["scan_command = '%s'" % str(self.nx.entry1.scan.scan_command)]
+        except:
+            scan_command_assignment = []
+        assignments_list  =  ['<MetaDataAtStart>'] + scan_command_assignment + assignments_list + ['</MetaDataAtStart>']
+        self.to_srs(outfile, assignments_list)
 
 
     def plt(self, *args, **kwargs):
