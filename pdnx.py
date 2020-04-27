@@ -1,8 +1,10 @@
+# When NXclassic_scan in use: change to entry = None, data = None in pdnx.__init__
+
 import nexusformat.nexus as nx
 import pandas as pd
 import matplotlib
 import numpy as np
-#from astropy.modeling.tests import data
+
 
 pd.set_option('display.max_rows',8)
 pd.set_option('display.max_columns', 500)
@@ -37,16 +39,17 @@ class pdnx(pd.DataFrame):
 
     n['newkey'] = n.nx.entry1.before_scan.myval 	as long as 'newkey' is new then this pads out a new scan column with myval
     n.to_excel(filename)    save excel spreadsheet (standard Pandas method - see other .to_ methods)
-    n.to_srs(filename)        save as SRS .dat file (requires NXclassic_scan)
+    n.to_srs(filename)       save as SRS .dat file (requires NXclassic_scan)
     n.to_srs_plus(filename)    save as SRS .dat file with key-value metadata assignments (requires NXclassic_scan)
 
     '''
 
 
-    def __init__(self,  filestr, entry = _entry, data = _measurement):
+    def __init__(self,  filestr, entry = _entry, data = _measurement, round = True):
         '''
         entry = select nexus entry for measurement data and set default to this entry
         data = nexus field containing datafor pandas dataframe
+        round: Attempt to round data using @range attributes if they exist
         '''
         try:
             _nx = nx.nxload(filestr,'r')
@@ -75,7 +78,9 @@ class pdnx(pd.DataFrame):
 
         try:
             if _use_classicscan:
-                keys = _nx[entrydata]['scan_fields'] # use fields from scan_fields required by NXclassic_scan
+                #keys = _nx[entrydata]['scan_fields'] # use fields from scan_fields required by NXclassic_scan
+                keys = _nx[entry]['scan_fields'] # use fields from scan_fields required by NXclassic_scan
+
             else:
                 keys = _nx[entrydata].keys()        # use all fields - must all be the same length to avoid an error
 
@@ -84,6 +89,14 @@ class pdnx(pd.DataFrame):
             for key in keys:
                 try:
                     nx_scan_dict[key] = _nx[entrydata][key].nxdata.flatten()
+                    if round == True:
+                        try: # try to round
+                            decimals = _nx[entrydata][key].attrs['decimals']
+                            nx_scan_dict[key] = nx_scan_dict[key].round(decimals)
+                            if decimals == 0:
+                                nx_scan_dict[key] = nx_scan_dict[key].astype(int)   #convert to int if no decimals
+                        except:
+                            pass
                 except:
                     pass
             pd.DataFrame.__init__(self, nx_scan_dict, columns = keys)   ###############
@@ -110,73 +123,39 @@ class pdnx(pd.DataFrame):
 
         self._use_classicscan = _use_classicscan
         self._entrydata = entrydata
-
-
-    def __init_old__(self,  filestr, entry = _entry, measurement = _measurement):
-        '''
-        entry = select nexus entry for measurement data and set default to this entry
-        measurement = nexus field containing datafor pandas dataframe
-        '''
-        try:
-            _nx = nx.nxload(filestr,'r')
-
-        except:
-            print("=== Error loading file %s" % filestr)
-            return
-        
-        _load_dataframe_success = False
-
-        try:
-            nx_scan_dict = dict(_nx[entry+measurement])
-            for key in nx_scan_dict.keys():
-                try:
-                    nx_scan_dict[key] = nx_scan_dict[key].nxdata.flatten()
-                except:
-                    pass
-            pd.DataFrame.__init__(self, nx_scan_dict)
-            _load_dataframe_success = True
-        except:
-            pass
-
-        try:
-            _nx['default'] = entry #set default entry to specified entry (for files with multiple enties)
-        except:
-            pass
-
-        if not _load_dataframe_success:
-            #print('=== Failed to create DataFrame from data - create empty DataFrame')
-            pd.DataFrame.__init__(self)
-
-        setattr(self,'nx',_nx)
-        
-
-        try:
-            setattr(self, 'scan', filestr+'\n'+_nx[entry]['title'].nxdata)
-        except:
-            pass
+        self._entry = entry
 
 
     def to_srs(self, outfile, extra_metadata = []):
         #save data in SRS .dat format (requires NXclassic_scan)
+        #prototype looks for named field (scan) - need to modify to find field containing classic_scan definition
         if not self._use_classicscan:
             raise ValueError('=== The to_srs method requires a NeXus file with NXclassic_scan definition. \nYou might still be able to use .to_csv')
         self.to_csv(outfile, sep = '\t', index = False)
         with open(outfile, 'r+') as f:
             content = f.read()
             f.seek(0, 0)
-            for headerline in list(self.nx.entry1.scan.measurement.scan_header) + extra_metadata:
+            #for headerline in list(self.nx.entry1.scan.scan_header) + extra_metadata:
+            for headerline in list(self.nx[self._entry]['scan_header']) + extra_metadata:
                 f.write(headerline + '\n')
             f.write(' &END\n')
             f.write(content)
 
+
+#keys = _nx[entry]['scan_fields']
+
+
     def to_srs_plus(self, outfile):
         #save data in SRS .dat format with extra metadata key-value pairs (requires NXclassic_scan)
+        #prototype looks for named field (scan) - need to modify to find field containing classic_scan definition
         if not self._use_classicscan:
             raise ValueError('=== The to_srs_plus method requires a NeXus file with NXclassic_scan definition. \nYou might still be able to use .to_csv')
-        positioner_tree_list  =  self.nx.entry1.scan.positioners.tree.split('\n')
+        #positioner_tree_list  =  self.nx.entry1.scan.positioners.tree.split('\n')
+        positioner_tree_list  =  self.nx[self._entry].positioners.tree.split('\n')
         assignments_list  =  [assig.lstrip() for assig in positioner_tree_list if '=' in assig and not '@'in assig]
         try:
-            scan_command_assignment = ["scan_command = '%s'" % str(self.nx.entry1.scan.scan_command)]
+            #scan_command_assignment = ["scan_command = '%s'" % str(self.nx.entry1.scan.scan_command)]
+            scan_command_assignment = ["scan_command = '%s'" % str(self.nx[self._entry].scan_command)]
         except:
             scan_command_assignment = []
         assignments_list  =  ['<MetaDataAtStart>'] + scan_command_assignment + assignments_list + ['</MetaDataAtStart>']
