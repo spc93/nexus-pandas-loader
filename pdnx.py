@@ -65,16 +65,20 @@ class pdnx(pd.DataFrame):
         if not entry == None and not data == None:
             entrydata = entry+data
         else:
-            entry =  getNexusSubentryWithDefinition(_nx, definition = 'NXclassic_scan')
-            for key in _nx[entry].keys():
-                if 'NXdata' in str(type(_nx[entry][key])):
-                    entrydata = '%s/%s' % (entry, key)
-                    _use_classicscan = True
+            try:
+                entry =  getNexusSubentryWithDefinition(_nx, definition = 'NXclassic_scan')
+                for key in _nx[entry].keys():
+                    if 'NXdata' in str(type(_nx[entry][key])):
+                        entrydata = '%s/%s' % (entry, key)
+                        _use_classicscan = True
+            except:
+                pass
+                        
 
-        try:
-            _nx[entrydata]
-        except:
-            raise ValueError('=== Problem finding data field')
+        #try:
+        #    _nx[entrydata]
+        #except:
+        #    raise ValueError('=== Problem finding data field')
 
         try:
             if _use_classicscan:
@@ -99,7 +103,7 @@ class pdnx(pd.DataFrame):
                             pass
                 except:
                     pass
-            pd.DataFrame.__init__(self, nx_scan_dict, columns = keys)   ###############
+            pd.DataFrame.__init__(self, nx_scan_dict, columns = keys)
     
             _load_dataframe_success = True
         except:
