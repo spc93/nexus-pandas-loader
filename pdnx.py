@@ -4,7 +4,8 @@ import nexusformat.nexus as nx
 import pandas as pd
 import matplotlib
 import numpy as np
-
+import warnings
+warnings.filterwarnings("ignore")
 
 pd.set_option('display.max_rows',8)
 pd.set_option('display.max_columns', 500)
@@ -118,10 +119,10 @@ class pdnx(pd.DataFrame):
             print('=== Failed to create DataFrame from data - create empty DataFrame')
             pd.DataFrame.__init__(self)
 
-        setattr(self,'nx',_nx)
+        setattr(self,'nx',_nx)  # causes a warning in pandas - suppress warnings to avoid messages
 
         try:
-            setattr(self, 'scan', filestr+'\n'+_nx[entry]['title'].nxdata)
+            setattr(self, 'scan', filestr+'\n' + str(_nx[entry]['title'].nxdata))
         except:
             pass
 
@@ -167,7 +168,8 @@ class pdnx(pd.DataFrame):
 
 
     def plt(self, *args, **kwargs):
-        kwargs.setdefault('title', self.scan)
+        _title_length = 90
+        kwargs.setdefault('title', self.scan[:_title_length])
         kwargs.setdefault('grid', True)
         self.plot(*args, **kwargs)
 
